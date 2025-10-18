@@ -989,13 +989,44 @@ class PageSpeedInsightsServer {
         report += `- Contains ${Object.keys(visualData.fullPageScreenshot.nodes || {}).length} mapped DOM nodes\n`;
       }
       
-      return {
-        content: [
-          {
-            type: "text",
-            text: report,
+      // Prepare content array with text first
+      const content: any[] = [
+        {
+          type: "text",
+          text: report,
+        }
+      ];
+      
+      // Add final screenshot if available
+      if (visualData.finalScreenshot && visualData.finalScreenshot.data) {
+        // Remove data URI prefix if present
+        const cleanedData = visualData.finalScreenshot.data.replace(/^data:image\/[a-z]+;base64,/, '');
+        content.push({
+          type: "image",
+          data: cleanedData,
+          mimeType: "image/jpeg"
+        });
+      }
+      
+      // Optionally add first few filmstrip frames (limit to avoid too many images)
+      if (visualData.filmstrip.length > 0) {
+        // Add up to 3 filmstrip frames
+        const framesToShow = Math.min(3, visualData.filmstrip.length);
+        for (let i = 0; i < framesToShow; i++) {
+          const frame = visualData.filmstrip[i];
+          if (frame.data) {
+            const cleanedData = frame.data.replace(/^data:image\/[a-z]+;base64,/, '');
+            content.push({
+              type: "image",
+              data: cleanedData,
+              mimeType: "image/jpeg"
+            });
           }
-        ],
+        }
+      }
+      
+      return {
+        content,
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
